@@ -9,31 +9,36 @@
 #include "thread_pool.hpp"
 
 #include <functional>
+#include <vector>
+#include <list>
+
+using boost::sort::common::range;
 
 using result_op = std::future<void>;
 using result_list = std::list<result_op>;
 
-using string_list = std::vector<std::string>;
+//using string_list = std::vector<std::string>;
+using string_list = std::vector<int>;
 using input_iterator = string_list::iterator;
 using range_data = range<input_iterator>;
-
-using operation_list = std::vector<swap_operation>;
-
-using boost::sort::common::range;
 
 using sort_pair = std::pair<input_iterator, input_iterator>;
 using sort_data = std::vector<sort_pair>;
 
 struct bitonic_node
 {
-  bitonic_node(): left_node(nullptr), right_node(nullptr) {}
+  bitonic_node(): left(nullptr), right(nullptr) {}
   bitonic_node(range_data&& range_, bitonic_node* left_, bitonic_node* right_)
     : data()
     , left(left_)
     , right(right_)
   {
     assert( (left != nullptr && right != nullptr) || (left == nullptr && right == nullptr) );
-    data.reserve(range_.size()/2+1);
+    constexpr int even_mask = 0x01;
+    if (even_mask & range_.size())
+      data.reserve(range_.size()/2+1);
+    else
+      data.reserve(range_.size()/2);
     
     size_t full_length = std::distance(range_.first, range_.last);
     size_t half_length = full_length / 2;
@@ -41,8 +46,8 @@ struct bitonic_node
     input_iterator half_begin = range_.first + half_length;
     for(;current_it != half_begin; ++current_it) {
       input_iterator pair_it = current_it + half_length;
-      if( pair_it != current->last )
-        data.insert(sort_pair(current_it, pair_it));
+      if( pair_it != range_.last )
+        data.insert(data.end(), sort_pair(current_it, pair_it));
     }
   }
   ~bitonic_node()
@@ -78,14 +83,29 @@ struct sort_tuple_functor
 
 struct sort_data_functor
 {
-  sort_data_functor(input_iterator begin, input_iterator last);
-  step_list steps;
+  sort_data_functor(input_iterator begin_, input_iterator last_);
+  ~sort_data_functor();
+  void operator()();
 private:
+  using value_type = input_iterator::value_type;
+  input_iterator begin;
+  input_iterator last;
+  std::vector<value_type> ext_buffer;
+  size_t padding_length;
+  bitonic_node* root_node;
+  step_list steps;
+  static uint8_t power2_more_than(size_t length);
   static uint8_t step_count(size_t length);
-  static bitonic_node* bitonic_split(sort_data_functor* sorter, input_iterator begin, input_iterator last, int depth = 0);
+  static bitonic_node* bitonic_split(sort_data_functor* sorter, input_iterator begin, input_iterator last, int depth);
 };
 
-template <bool acsending>
+enum struct order_te
+{
+  up,
+  down
+};
+
+template <order_te order>
 struct check_and_swap
 {
   input_iterator left;
@@ -96,21 +116,23 @@ struct check_and_swap
   {}
   void operator()()
   {
-    switch (acsending)
+    switch (order)
     {
-      case true:
+      case order_te::up:
         if (*left > *right)
           std::swap(*left, *right);
         break;
-      case false:
+      case order_te::down:
         if (*left < *right)
           std::swap(*left, *right);
         break;
+      default:
+        assert(false);
     }
   }
 };
 
-template <bool ascending>
+template <order_te order>
 struct sort_bitonic
 {
   bitonic_node* data;
@@ -123,7 +145,7 @@ struct sort_bitonic
 private:
   const thread_pool& m_thread_pool;
   
-  static result_list get_operations(bitonic_node* current, size_t depth)
+  result_list get_operations(bitonic_node* current, size_t depth)
   {
     if (depth == 0)
     {
@@ -133,31 +155,21 @@ private:
     {
       --depth;
       result_list result;
-      if(data->has_branches())
+      if(current->has_branches())
       {
-        result.insert(result.end(), *this(data->left, depth));
-        result.insert(result.end(), *this(data->right, depth));
+        result.splice(result.end(), get_operations(current->left, depth));
+        result.splice(result.end(), get_operations(current->right, depth));
       }
       return result;
     }
   }
-  static result_list get_current_operations(bitonic_node* current)
+  result_list get_current_operations(bitonic_node* current)
   {
-    assert(current->begin != current.last);
-    size_t full_length = std::distance(current->begin, current->last);
-    if ( full_length <= 1 )
-      return operation_list();
-    
-    size_t half_length = full_length / 2;
-    input_iterator current_it = begin;
-    input_iterator half_begin = begin + half_length;
     result_list result;
-    for(;current_it != half_begin; ++current_it)
+    std::for_each(current->data.begin(), current->data.end(), [&result, this](auto& pair)
     {
-      input_iterator pair_it = current_it + half_length;
-      if( pair_it != current->last )
-        result.append(m_thread_pool.exec(check_and_swap<ascending>(current_it, pair_it)));
-    }
+      result.push_back(m_thread_pool.exec(check_and_swap<order>(pair.first, pair.second)));
+    });
     return result;
   }
 };

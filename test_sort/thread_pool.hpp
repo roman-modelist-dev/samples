@@ -9,24 +9,20 @@
 
 class thread_pool
 {
-  thread_pool();
-  ~thread_pool();
+  thread_pool() {}
+  ~thread_pool() {}
 public:
   static const thread_pool& instance()
   {
-    static const thread_pool;
-    return thread_pool;
+    static const thread_pool pool;
+    return pool;
   }
   
   template <typename Function_f>
   std::future<void> exec(Function_f&& f) const
   {
-    std::packaged_task<void()> result(f);
-    
     //TODO: need to implement thread pool
-    std::async(std::launch::async, result);
-    
-    return result.get_future();
+    return std::async(std::launch::async, f);
   }
 };
 

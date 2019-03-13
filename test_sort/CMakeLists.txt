@@ -17,6 +17,6 @@ include_directories(${Boost_INCLUDE_DIR})
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}  -stdlib=libc++" )
 
-add_executable(test_sort main.cpp)
+add_executable(test_sort main.cpp range.hpp sorter.cpp sorter.hpp thread_pool.hpp)
 
 target_link_libraries(test_sort ${Boost_LIBRARIES} pthread)
