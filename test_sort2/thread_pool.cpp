@@ -5,31 +5,45 @@
 #include <iostream>
 #include <boost/date_time/posix_time/posix_time_types.hpp>
 #include "thread_pool.hpp"
+#include <boost/interprocess/sync/scoped_lock.hpp>
 
 task_manager::task_manager()
   : m_stop(false)
   , m_task_queue(this)
-  , m_thread(std::bind(&task_manager::exec, this))
+  , m_thread(new std::thread(std::bind(&task_manager::exec, this)))
 {
 }
 
 task_manager::~task_manager()
 {
   m_stop = true;
-  m_thread.join();
+  if(m_thread)
+    m_thread->join();
+}
+
+void task_manager::restart()
+{
+  m_stop = true;
+  if(m_thread) {
+    m_thread->join();
+    m_stop = false;
+    m_thread.reset(new std::thread(std::bind(&task_manager::exec, this)));
+  }
 }
 
 void task_manager::exec()
 {
-  while (!m_stop.load())
+  while (!m_stop.load()||!m_task_queue.empty())
   {
-    std::lock_guard<spin_mutex> lock(m_task_running);
+    //boost::interprocess::scoped_lock<spin_mutex> lock(m_task_running);
+    //std::lock_guard<std::mutex> lock(m_task_running);
     auto* task = get_task();
     if (task)
     {
       (*task)();
       delete task;
     }
+    
   }
 }
 
@@ -63,7 +77,8 @@ size_t thread_pool_t::threads_num() const
 }
 
 semaphore_queue::semaphore_queue(task_manager* p_task_manager)
-  : m_task_manager (p_task_manager)
+  : m_task_queue(0x100000)
+  , m_task_manager (p_task_manager)
   , m_semaphore(0)
   , m_dbg_count(0)
 {}
@@ -103,15 +118,7 @@ bool semaphore_queue::push(const value_type& p_task)
 
 bool semaphore_queue::pop(value_type& p_task)
 {
-  auto lock_res = false;
-  for(int i = 0; i < 100; ++i)
-  {
-    lock_res = m_semaphore.try_wait();
-    if(lock_res)
-      break;
-    std::this_thread::yield();
-  }
-  if(lock_res)
+  if(m_semaphore.timed_wait(boost::posix_time::microsec_clock::local_time() + boost::posix_time::millisec(500)))
   {
     --m_dbg_count;
     return m_task_queue.pop(p_task);
@@ -198,11 +205,14 @@ bool task_manager::is_stopped() const
 
 bool task_manager::is_current_thread() const
 {
-  return std::this_thread::get_id() == m_thread.get_id();
+  if(m_thread)
+    return std::this_thread::get_id() == m_thread->get_id();
+  return false;
 }
-
+/*
 bool task_manager::wait_for_done()
 {
-  std::lock_guard<spin_mutex> lock(m_task_running);
+ // boost::interprocess::scoped_lock<spin_mutex> lock(m_task_running);
+  std::lock_guard<std::mutex> lock(m_task_running);
   return m_task_queue.wait_for_empty();
-}
+}*/

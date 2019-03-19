@@ -19,7 +19,7 @@
 using boost::interprocess::ipcdetail::spin_mutex;
 using boost::interprocess::ipcdetail::spin_semaphore;
 using boost::interprocess::interprocess_semaphore;
-
+/*
 class spin_result_t
 {
   std::atomic<bool> m_result;
@@ -37,7 +37,7 @@ public:
     }
   }
 };
-
+*/
 
 class task_manager;
 
@@ -68,7 +68,7 @@ public:
 
 class semaphore_queue
 {
-  boost::lockfree::queue<task_base*, boost::lockfree::capacity<0xffff-1>> m_task_queue;
+  boost::lockfree::queue<task_base*, boost::lockfree::fixed_sized<false>> m_task_queue;
   task_manager* m_task_manager;
   spin_semaphore m_semaphore;
   std::atomic<size_t> m_dbg_count;
@@ -82,7 +82,7 @@ public:
   bool pop(value_type& p_task);
 };
 
-using spin_result_ptr = std::shared_ptr<spin_result_t>;
+//using spin_result_ptr = std::shared_ptr<spin_result_t>;
 
 template<typename Fn>
 class task_t: public task_base
@@ -112,13 +112,14 @@ public:
 
   bool is_stopped() const;
   bool is_current_thread() const;
-  bool wait_for_done();
+  void restart();
+  //bool wait_for_done();
   bool add_task(task_base* p_task);
 private:
   std::atomic<bool>  m_stop;
-  spin_mutex         m_task_running;
+  //std::mutex         m_task_running;
   semaphore_queue    m_task_queue;
-  std::thread        m_thread;
+  std::shared_ptr<std::thread> m_thread;
   
   task_base* get_task();
   void exec();
@@ -140,7 +141,7 @@ public:
     static thread_pool_t pool;
     return pool;
   }
-  
+  /*
   void wait_all()
   {
     for(auto it = m_thread_list.begin(); it != m_thread_list.end(); ++it)
@@ -149,6 +150,13 @@ public:
       auto res = it->wait_for_done();
       assert(res);
     }
+  }*/
+  
+  void restart()
+  {
+    std::for_each(m_thread_list.begin(), m_thread_list.end(), [](auto& thread){
+      thread.restart();
+    });
   }
   
   size_t threads_num () const;

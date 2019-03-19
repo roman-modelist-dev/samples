@@ -21,7 +21,8 @@ int main() {
     in_data1[i] = dist(rd);
   }*/
   
-  std::vector<int> in_data1(0x0fffffff);
+ // std::vector<int> in_data1(0x0fffffff);
+  std::vector<int> in_data1(0x000fffff);
   for(int i = 0; i < in_data1.size(); ++i)
   {
     in_data1[i] = dist(rd);
@@ -38,8 +39,8 @@ int main() {
  // auto& thread_pool = thread_pool_t::instance();
   
   auto start = std::chrono::system_clock::now();
-  //parallel_merge_sort(in_data1.begin(), in_data1.end());
-  std::sort(in_data1.begin(), in_data1.end());
+  parallel_merge_sort(in_data1.begin(), in_data1.end());
+  //std::sort(in_data1.begin(), in_data1.end());
   //boost::sort::block_indirect_sort(in_data1.begin(), in_data1.end());
   auto end = std::chrono::system_clock::now();
   

@@ -76,32 +76,28 @@ void parallel_merge_sort(Iterator begin, Iterator last)
     const auto in_buf_end = in_buf.data() + in_buf.size();
     auto right_it = in_buf.data() + factor/2;
     
-    //constexpr size_t max_operations_num = 0x8000 * 4;
-    //auto operation_num = std::min(merge_num, max_operations_num);
-    
-    
     for(; left_it < in_buf_end ;)
     {
-//      do
-//      {
-//        auto res = thread_pool.exec([=]()
-//        {
-         merge(std::min(left_it, in_buf_end),  std::min((left_it + factor/2), in_buf_end ),
-               std::min(right_it, in_buf_end), std::min((right_it + factor/2), in_buf_end ),
-               out_it);
-//        });
-//        if(!res)
- //       {
- //         thread_pool.wait_all();
- //         continue;
- //       }
-  //      break;
-  //    } while (true);
+     //   do
+     //   {
+//          auto res = thread_pool.exec([=]()
+//                                      {
+                                        merge(std::min(left_it, in_buf_end),  std::min((left_it + factor/2), in_buf_end ),
+                                              std::min(right_it, in_buf_end), std::min((right_it + factor/2), in_buf_end ),
+                                              out_it);
+  //                                    });
+     //     if(!res)
+     //     {
+      //      thread_pool.restart();
+     //       continue;
+     //     }
+     //     break;
+     //   } while (true);
       left_it += factor;
       right_it += factor;
       out_it += factor;
     }
-//    thread_pool.wait_all();
+    //thread_pool.restart();
     buffer_pair = switch_buffers(buffer_pair);
     factor *= 2;
     //merge_num = count_merges(merge_num);
