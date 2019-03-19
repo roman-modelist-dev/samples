@@ -24,4 +24,12 @@ size_t step_count(size_t length)
   return count;
 }
 
+size_t count_merges(size_t length)
+{
+  constexpr int even_mask = 0x01;
+  if (even_mask & length)
+    return length/2+1;
+  else
+    return length/2;
+}
 

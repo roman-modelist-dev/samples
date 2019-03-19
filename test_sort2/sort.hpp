@@ -6,8 +6,12 @@
 #define TEST_SORT_SORT_HPP
 
 #include <vector>
+#include <list>
+#include <algorithm>
 #include <type_traits>
 #include <cstddef>
+
+#include "thread_pool.hpp"
 
 size_t step_count(size_t length);
 
@@ -36,57 +40,74 @@ void merge(Iterator_in first_begin, Iterator_in first_end, Iterator_in second_be
     std::copy(second_it, second_end, out);
 };
 
-class sorter_t
+size_t count_merges(size_t length);
+
+template <typename Iterator>
+void parallel_merge_sort(Iterator begin, Iterator last)
 {
-public:
-  sorter_t(){}
-  ~sorter_t(){}
+  using value_type = typename Iterator::value_type;
+  using buffer_t = std::vector<value_type>;
+  using buffer_pair_t = std::pair<buffer_t&, buffer_t&>;
+
+  //auto& thread_pool = thread_pool_t::instance();
   
-  template <typename Iterator>
-  void operator()(Iterator begin, Iterator last)
+  size_t length = std::distance(begin, last);
+  buffer_t buffer1(length);
+  buffer_t buffer2(length);
+  
+  auto buffer_pair = buffer_pair_t(buffer1, buffer2);
+  std::copy(begin, last, buffer1.begin());
+  
+  auto switch_buffers = [](const buffer_pair_t& buffer_pair_)
   {
-    using value_type = typename Iterator::value_type;
-    using buffer_t = std::vector<value_type>;
-    using buffer_pair_t = std::pair<buffer_t&, buffer_t&>;
+    return buffer_pair_t(buffer_pair_.second, buffer_pair_.first);
+  };
   
-    size_t length = std::distance(begin, last);
-    buffer_t buffer1(length);
-    buffer_t buffer2(length);
+  size_t factor = 2; //length of merged arrays
+  size_t num_step = step_count(length);
+  //size_t merge_num = count_merges(length);
+  
+  for(int i = 0; i < num_step; ++i)
+  {
+    auto& in_buf = buffer_pair.first;
+    auto& out_buf = buffer_pair.second;
+    auto out_it = out_buf.data();
+    auto left_it = in_buf.data();
+    const auto in_buf_end = in_buf.data() + in_buf.size();
+    auto right_it = in_buf.data() + factor/2;
     
-    auto buffer_pair = buffer_pair_t(buffer1, buffer2);
-    std::copy(begin, last, buffer1.begin());
+    //constexpr size_t max_operations_num = 0x8000 * 4;
+    //auto operation_num = std::min(merge_num, max_operations_num);
     
-    auto switch_buffers = [this](const buffer_pair_t& buffer_pair_)
+    
+    for(; left_it < in_buf_end ;)
     {
-      return buffer_pair_t(buffer_pair_.second, buffer_pair_.first);
-    };
-    
-    size_t factor = 2; //length of merged arrays
-    size_t num_step = step_count(length);
-    
-    for(int i = 0; i < num_step; ++i)
-    {
-      auto& in_buf = buffer_pair.first;
-      auto& out_buf = buffer_pair.second;
-      auto out_it = out_buf.begin();
-      auto left_it = in_buf.begin();
-      auto right_it = in_buf.begin() + factor/2;
-      for(; left_it <= in_buf.end() && right_it <= in_buf.end(); )
-      {
-        merge(left_it, std::min((left_it + factor/2), in_buf.end()),
-              right_it,std::min((right_it + factor/2), in_buf.end()),
-              out_it
-        );
-        left_it += factor;
-        right_it += factor;
-        out_it += factor;
-      }
-      buffer_pair = switch_buffers(buffer_pair);
-      factor *= 2;
+//      do
+//      {
+//        auto res = thread_pool.exec([=]()
+//        {
+         merge(std::min(left_it, in_buf_end),  std::min((left_it + factor/2), in_buf_end ),
+               std::min(right_it, in_buf_end), std::min((right_it + factor/2), in_buf_end ),
+               out_it);
+//        });
+//        if(!res)
+ //       {
+ //         thread_pool.wait_all();
+ //         continue;
+ //       }
+  //      break;
+  //    } while (true);
+      left_it += factor;
+      right_it += factor;
+      out_it += factor;
     }
-    auto& result_buf = buffer_pair.first;
-    std::copy(result_buf.begin(), result_buf.end(), begin);
+//    thread_pool.wait_all();
+    buffer_pair = switch_buffers(buffer_pair);
+    factor *= 2;
+    //merge_num = count_merges(merge_num);
   }
-};
+  auto& result_buf = buffer_pair.first;
+  std::copy(result_buf.begin(), result_buf.end(), begin);
+}
 
 #endif //TEST_SORT_SORT_HPP

@@ -15,7 +15,7 @@ SET(Boost_LIBRARIES ${Boost_LIBRARIES})
 include_directories(${Boost_INCLUDE_DIR})
 
 set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}" )
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++" )
 
 
 file(GLOB FILES_SRC "./*.cpp" "./*.hpp" )
