@@ -14,7 +14,30 @@
 #include <cstddef>
 #include <boost/sort/common/range.hpp>
 
+static constexpr const uint32_t tmsb[256] =
+  { 0, 1, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
+    5, 5, 5, 5, 5, 5, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
+    6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 7, 7, 7, 7,
+    7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
+    7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
+    7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 8, 8, 8,
+    8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+    8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+    8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+    8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+    8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+    8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8 };
+
+static inline uint32_t nbits64(uint64_t num)noexcept
+{
+  uint32_t Pos = (num & 0xffffffff00000000ULL) ? 32 : 0;
+  if ((num >> Pos) & 0xffff0000ULL) Pos += 16;
+  if ((num >> Pos) & 0xff00ULL) Pos += 8;
+  return (tmsb[num >> Pos] + Pos);
+}
+
 size_t step_count(size_t length);
+size_t power2_more_than(size_t length);
 
 template <typename Iterator_in, typename Iterator_out>
 void merge(Iterator_in first_begin, Iterator_in first_end, Iterator_in second_begin, Iterator_in second_end, Iterator_out out)
@@ -63,20 +86,31 @@ void parallel_merge_sort(Iterator begin, Iterator last) {
   };
 
   size_t length = std::distance(begin, last);
+  auto num_of_threads = power2_more_than(std::thread::hardware_concurrency());
+  //TODO: it may be improve - num of threads may reduce in some cases for best perfomance
+  
+  if (length < 0x100 or num_of_threads < 2)
+  {
+    std::sort(begin,last);
+    return;
+  };
+  
   buffer_t buffer1(length);
   buffer_t buffer2(length);
   
   auto buffer_pair = buffer_pair_t(&buffer1, &buffer2);
+  size_t block_size = length / num_of_threads;
   
-  size_t block_size = std::distance(begin, last) / std::thread::hardware_concurrency();
-  
-  std::vector<range<Iterator>> blocks(std::thread::hardware_concurrency());
+  std::vector<range<Iterator>> blocks(num_of_threads);
   
   auto it = begin;
   
-  for(int i = 0; i < std::thread::hardware_concurrency() ; ++i)
+  for(int i = 0; i < num_of_threads; ++i)
   {
-    blocks[i] = range<Iterator>(it, it + block_size);
+    if( i + 1 == num_of_threads)
+      blocks[i] = range<Iterator>(it, last);
+    else
+      blocks[i] = range<Iterator>(it, it + block_size);
     it += block_size;
   }
   
@@ -109,12 +143,14 @@ void parallel_merge_sort(Iterator begin, Iterator last) {
     
     std::list<std::future<void>> results;
     
-    for(; left_it < in_buf_end ;)
+    for(int count = 0; count <  (num_of_threads / (factor * 2))  ; ++count)
     {
+      assert(left_it < in_buf_end);
       results.push_back(std::async(std::launch::async, [=]()
       {
+        auto right_end = ( count+1 ==  num_of_threads / (factor * 2) )? in_buf_end: std::min((right_it + block_size * factor), in_buf_end );
         merge(std::min(left_it, in_buf_end),  std::min((left_it + block_size * factor), in_buf_end ),
-              std::min(right_it, in_buf_end), std::min((right_it + block_size * factor), in_buf_end ),
+              std::min(right_it, in_buf_end), right_end,
               out_it);
       }));
       left_it += block_size * factor * 2;

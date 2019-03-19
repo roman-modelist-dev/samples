@@ -9,6 +9,8 @@
 
 #include "sort.hpp"
 
+#include "json.hpp"
+
 int main() {
   //std::vector<std::string> in_data = {"asdfqw1234325", "af3t t9unj9-wn=0vmerwg", "12213", "dfjhgkr", "mhioertphnj SGSdgadg"};
   
@@ -20,9 +22,9 @@ int main() {
   }*/
   
 //std::vector<int> in_data1(0x0fffffff);
-  std::vector<int> in_data1(0x08000000);
-  std::vector<int> in_data2(0x08000000);
-  std::vector<int> in_data3(0x08000000);
+  std::vector<int> in_data1(0x04ffffff);
+  std::vector<int> in_data2(0x04ffffff);
+  std::vector<int> in_data3(0x04ffffff);
   
   auto block_size = in_data1.size()/8;
   size_t current_ind = 0;
