@@ -9,10 +9,10 @@
 #include <list>
 #include <algorithm>
 #include <type_traits>
+#include <thread>
+#include <future>
 #include <cstddef>
 #include <boost/sort/common/range.hpp>
-
-#include "thread_pool.hpp"
 
 size_t step_count(size_t length);
 
@@ -62,8 +62,6 @@ void parallel_merge_sort(Iterator begin, Iterator last) {
     buffer_t* out_buf;
   };
 
-  //auto& thread_pool = thread_pool_t::instance();
-  
   size_t length = std::distance(begin, last);
   buffer_t buffer1(length);
   buffer_t buffer2(length);
@@ -99,7 +97,6 @@ void parallel_merge_sort(Iterator begin, Iterator last) {
   
   size_t factor = 1; //length of merged arrays
   size_t num_step = step_count(blocks.size());
-  //size_t merge_num = count_merges(length);
   
   for(int i = 0; i < num_step; ++i)
   {
@@ -126,10 +123,8 @@ void parallel_merge_sort(Iterator begin, Iterator last) {
     }
     for (auto& res: results)
       res.wait();
-    //thread_pool.restart();
     buffer_pair.switch_pair();
     factor *= 2;
-    //merge_num = count_merges(merge_num);
   }
   buffer_pair.switch_pair();
   auto& result_buf = *buffer_pair.out_buf;
