@@ -26,12 +26,12 @@ void merge(Iterator_in first_begin, Iterator_in first_end, Iterator_in second_be
   {
     if (*first_it < *second_it)
     {
-      *out = (*first_it);
+      *out = std::move(*first_it);
       ++first_it;
     }
     else
     {
-      *out = (*second_it);
+      *out = std::move(*second_it);
       ++second_it;
     }
     ++out;
@@ -77,19 +77,20 @@ void parallel_merge_sort(Iterator begin, Iterator last) {
   buffer_t buffer1(length);
   buffer_t buffer2(length);
   
-  std::move(begin, last, buffer1.begin());
-  
   auto buffer_pair = buffer_pair_t(&buffer1, &buffer2);
   size_t block_size = length / num_of_threads;
   
   std::vector<range_t> blocks(num_of_threads);
+  
+  
+  std::move(begin, last, buffer1.begin());
   
   auto it = buffer1.begin();
   
   for(int i = 0; i < num_of_threads; ++i)
   {
     if( i + 1 == num_of_threads)
-      blocks[i] = range_t(it, last);
+      blocks[i] = range_t(it, buffer1.end());
     else
       blocks[i] = range_t(it, it + block_size);
     it += block_size;

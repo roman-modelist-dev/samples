@@ -12,7 +12,9 @@
 #include "json.hpp"
 
 int main() {
-  //std::vector<std::string> in_data = {"asdfqw1234325", "af3t t9unj9-wn=0vmerwg", "12213", "dfjhgkr", "mhioertphnj SGSdgadg"};
+  std::vector<std::string> in_data1 = {"gfhkgh", "77567bgfdh","","ljgxhzgfg","asdfqw1234325", "af3t t9unj9-wn=0vmerwg", "12213", "dfjhgkr", "mhioertphnj SGSdgadg"};
+  std::vector<std::string> in_data2 = {"gfhkgh", "77567bgfdh","","ljgxhzgfg","asdfqw1234325", "af3t t9unj9-wn=0vmerwg", "12213", "dfjhgkr", "mhioertphnj SGSdgadg"};
+  std::vector<std::string> in_data3 = {"gfhkgh", "77567bgfdh","","ljgxhzgfg","asdfqw1234325", "af3t t9unj9-wn=0vmerwg", "12213", "dfjhgkr", "mhioertphnj SGSdgadg"};
   
   
   /*std::vector<int> in_data1(0x0fffffff);
@@ -22,7 +24,7 @@ int main() {
   }*/
   
 //std::vector<int> in_data1(0x0fffffff);
-  std::vector<int> in_data1(0x04ffffff);
+/*  std::vector<int> in_data1(0x04ffffff);
   std::vector<int> in_data2(0x04ffffff);
   std::vector<int> in_data3(0x04ffffff);
   
@@ -34,15 +36,11 @@ int main() {
   
   for(int i = 0; i < in_data1.size(); ++i)
   {
-      /*  static int x = 0;
-        ++x;
-        if(x%4 == 0)
-          tmp = dist(rd);*/
-        in_data1[i] = dist(rd);
-   }
+    in_data1[i] = dist(rd);
+  }
    
   std::copy(in_data1.begin(), in_data1.end(), in_data2.begin());
-  std::copy(in_data1.begin(), in_data1.end(), in_data3.begin());
+  std::copy(in_data1.begin(), in_data1.end(), in_data3.begin());*/
  /*
   std::vector<int> in_data2 = {
    1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32
