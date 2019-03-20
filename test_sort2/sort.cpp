@@ -24,9 +24,4 @@ size_t step_count(size_t length)
   return count;
 }
 
-size_t power2_more_than(size_t length)
-{
-  size_t power = step_count(length);
-  return 1 << power;
-}
 

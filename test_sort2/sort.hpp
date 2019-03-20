@@ -12,10 +12,26 @@
 #include <thread>
 #include <future>
 #include <cstddef>
-#include <boost/sort/common/range.hpp>
+
+#include "range.hpp"
 
 size_t step_count(size_t length);
-size_t power2_more_than(size_t length);
+
+size_t inline power2_more_than(size_t length)
+{
+  size_t power = step_count(length);
+  return 1 << power;
+}
+
+inline size_t count_ranges(size_t length)
+{
+  if(length % 2 == 1)
+    return length / 2 + 1;
+  else
+    return length / 2;
+}
+
+#include "custom_merge_sort.hpp" //unused in final solution
 
 template <typename Iterator_in, typename Iterator_out>
 void merge(Iterator_in first_begin, Iterator_in first_end, Iterator_in second_begin, Iterator_in second_end, Iterator_out out)
@@ -44,13 +60,12 @@ void merge(Iterator_in first_begin, Iterator_in first_end, Iterator_in second_be
 
 size_t count_merges(size_t length);
 
-using namespace boost::sort::common;
-
 template <typename Iterator>
 void parallel_merge_sort(Iterator begin, Iterator last) {
   using value_type = typename Iterator::value_type;
   using buffer_t = std::vector<value_type>;
   using range_t = range<typename buffer_t::iterator>;
+  
   struct buffer_pair_t
   {
     buffer_pair_t(buffer_t* in, buffer_t* out):in_buf(in), out_buf(out){}
@@ -63,14 +78,14 @@ void parallel_merge_sort(Iterator begin, Iterator last) {
     buffer_t* in_buf;
     buffer_t* out_buf;
   };
-
+  
   size_t length = std::distance(begin, last);
   auto num_of_threads = power2_more_than(std::thread::hardware_concurrency());
   //TODO: it may be improve - num of threads may reduce in some cases for best perfomance
   
   if (length < 0x100 or num_of_threads < 2)
   {
-    std::sort(begin,last);
+    std::sort(begin, last);
     return;
   };
   
