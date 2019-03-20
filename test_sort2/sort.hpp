@@ -14,28 +14,6 @@
 #include <cstddef>
 #include <boost/sort/common/range.hpp>
 
-static constexpr const uint32_t tmsb[256] =
-  { 0, 1, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
-    5, 5, 5, 5, 5, 5, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
-    6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 7, 7, 7, 7,
-    7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
-    7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
-    7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 8, 8, 8,
-    8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
-    8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
-    8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
-    8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
-    8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
-    8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8 };
-
-static inline uint32_t nbits64(uint64_t num)noexcept
-{
-  uint32_t Pos = (num & 0xffffffff00000000ULL) ? 32 : 0;
-  if ((num >> Pos) & 0xffff0000ULL) Pos += 16;
-  if ((num >> Pos) & 0xff00ULL) Pos += 8;
-  return (tmsb[num >> Pos] + Pos);
-}
-
 size_t step_count(size_t length);
 size_t power2_more_than(size_t length);
 
@@ -48,20 +26,20 @@ void merge(Iterator_in first_begin, Iterator_in first_end, Iterator_in second_be
   {
     if (*first_it < *second_it)
     {
-      *out = *first_it;
+      *out = (*first_it);
       ++first_it;
     }
     else
     {
-      *out = *second_it;
+      *out = (*second_it);
       ++second_it;
     }
     ++out;
   }
   if (first_it != first_end)
-    std::copy(first_it, first_end, out);
+    std::move(first_it, first_end, out);
   if (second_it != second_end)
-    std::copy(second_it, second_end, out);
+    std::move(second_it, second_end, out);
 };
 
 size_t count_merges(size_t length);
@@ -72,6 +50,7 @@ template <typename Iterator>
 void parallel_merge_sort(Iterator begin, Iterator last) {
   using value_type = typename Iterator::value_type;
   using buffer_t = std::vector<value_type>;
+  using range_t = range<typename buffer_t::iterator>;
   struct buffer_pair_t
   {
     buffer_pair_t(buffer_t* in, buffer_t* out):in_buf(in), out_buf(out){}
@@ -98,19 +77,21 @@ void parallel_merge_sort(Iterator begin, Iterator last) {
   buffer_t buffer1(length);
   buffer_t buffer2(length);
   
+  std::move(begin, last, buffer1.begin());
+  
   auto buffer_pair = buffer_pair_t(&buffer1, &buffer2);
   size_t block_size = length / num_of_threads;
   
-  std::vector<range<Iterator>> blocks(num_of_threads);
+  std::vector<range_t> blocks(num_of_threads);
   
-  auto it = begin;
+  auto it = buffer1.begin();
   
   for(int i = 0; i < num_of_threads; ++i)
   {
     if( i + 1 == num_of_threads)
-      blocks[i] = range<Iterator>(it, last);
+      blocks[i] = range_t(it, last);
     else
-      blocks[i] = range<Iterator>(it, it + block_size);
+      blocks[i] = range_t(it, it + block_size);
     it += block_size;
   }
   
@@ -126,8 +107,6 @@ void parallel_merge_sort(Iterator begin, Iterator last) {
   
   for (auto& res: results)
     res.wait();
-  
-  std::copy(begin, last, buffer1.begin());
   
   size_t factor = 1; //length of merged arrays
   size_t num_step = step_count(blocks.size());
@@ -164,7 +143,7 @@ void parallel_merge_sort(Iterator begin, Iterator last) {
   }
   buffer_pair.switch_pair();
   auto& result_buf = *buffer_pair.out_buf;
-  std::copy(result_buf.begin(), result_buf.end(), begin);
+  std::move(result_buf.begin(), result_buf.end(), begin);
 }
 
 #endif //TEST_SORT_SORT_HPP
