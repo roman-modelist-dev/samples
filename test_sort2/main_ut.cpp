@@ -27,6 +27,7 @@ void ut_main(T& in_sets, nlohmann::json& in_data)
   for(auto& in_set: in_sets)
   {
     BOOST_TEST_MESSAGE("=== in data set begin ===");
+    BOOST_TEST_MESSAGE("data size = " << in_set.size() << " elements");
     data_set_t copy2(in_set.size()), copy3(in_set.size());
     std::copy(in_set.begin(), in_set.end(), copy2.begin());
     std::copy(in_set.begin(), in_set.end(), copy3.begin());
