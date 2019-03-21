@@ -14,7 +14,6 @@
 
 int main() {
   nlohmann::json in_jdata;
-  //std::vector<std::string> in_data1 = {"gfhkgh", "77567bgfdh","","ljgxhzgfg","asdfqw1234325", "af3t t9unj9-wn=0vmerwg", "12213", "dfjhgkr", "mhioertphnj SGSdgadg"};
   std::cin >> in_jdata;
   assert(in_jdata.is_array());
   if(in_jdata.empty())

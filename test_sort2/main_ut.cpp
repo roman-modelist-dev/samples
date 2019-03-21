@@ -61,19 +61,19 @@ void ut_main(T& in_sets, nlohmann::json& in_data)
   }
 }
 
-BOOST_AUTO_TEST_CASE(int_sort)
+BOOST_AUTO_TEST_CASE(small_int_sort_case)
 {
-  BOOST_TEST_MESSAGE("UT case: int sort ");
+  BOOST_TEST_MESSAGE("UT case: small_int_sort_case");
   nlohmann::json in_data;
   {
-    std::ifstream fin("test_int_data.json");
+    std::ifstream fin("test_data/small_int_data.json");
     fin >> in_data;
   }
   assert(in_data.is_array());
   using data_set = std::vector<int>;
   std::vector<data_set> in_sets;
   ut_main(in_sets, in_data);
-  std::ofstream fout("int_data_out.json");
+  std::ofstream fout("test_data/small_int_data_sorted.json");
   nlohmann::json j_out;
   for(auto& in_set: in_sets)
   {
@@ -83,19 +83,63 @@ BOOST_AUTO_TEST_CASE(int_sort)
 }
 
 
-BOOST_AUTO_TEST_CASE(string_sort)
+BOOST_AUTO_TEST_CASE(small_string_sort_case)
 {
-  BOOST_TEST_MESSAGE("UT case: string sort ");
+  BOOST_TEST_MESSAGE("UT case: small_string_sort_case");
   nlohmann::json in_data;
   {
-    std::ifstream fin("test_string_data.json");
+    std::ifstream fin("test_data/small_string_data.json");
     fin >> in_data;
   }
   assert(in_data.is_array());
   using data_set = std::vector<std::string>;
   std::vector<data_set> in_sets;
   ut_main(in_sets, in_data);
-  std::ofstream fout("string_data_out.json");
+  std::ofstream fout("test_data/small_string_data_sorted.json");
+  nlohmann::json j_out;
+  for(auto& in_set: in_sets)
+  {
+    j_out.push_back(in_set);
+  }
+  fout << j_out;
+}
+
+
+BOOST_AUTO_TEST_CASE(big_int_sort_case)
+{
+  BOOST_TEST_MESSAGE("UT case: big_int_sort_case");
+  nlohmann::json in_data;
+  {
+    std::ifstream fin("test_data/big_int_data.json");
+    fin >> in_data;
+  }
+  assert(in_data.is_array());
+  using data_set = std::vector<int>;
+  std::vector<data_set> in_sets;
+  ut_main(in_sets, in_data);
+  std::ofstream fout("test_data/big_int_data_sorted.json");
+  nlohmann::json j_out;
+  for(auto& in_set: in_sets)
+  {
+    j_out.push_back(in_set);
+  }
+  fout << j_out;
+}
+
+
+BOOST_AUTO_TEST_CASE(big_string_sort_case)
+{
+  BOOST_TEST_MESSAGE("UT case: big_string_sort_case");
+  nlohmann::json in_data;
+  {
+    std::ifstream fin("test_data/big_string_data.json");
+    fin >> in_data;
+  }
+  assert(in_data.is_array());
+  using data_set = std::vector<std::string>;
+  std::vector<data_set> in_sets;
+  ut_main(in_sets, in_data);
+  std::ofstream fout("test_data/big_string_data_sorted.json");
   nlohmann::json j_out;
   for(auto& in_set: in_sets)
   {
