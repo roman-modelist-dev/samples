@@ -1,19 +1,33 @@
 #include <iostream>
+#include <fstream>
 #include <string>
 #include <vector>
+#include <list>
 
-#include "sorter.hpp"
+#include <random>
+
+#include <boost/sort/sort.hpp>
+
+#include "sort.hpp"
+
+#include "json.hpp"
 
 int main() {
-  std::vector<std::string> in_data = {"asdfqw1234325", "af3t t9unj9-wn=0vmerwg", "12213", "dfjhgkr", "mhioertphnj SGSdgadg"};
-  //string_list in_data = {5,23,39,6,14,13,1,6,7,4,8,5,8,9,3,5,23};
-  //string_list in_data = {};
-  //std::list<int> in_data = {5,60,23,6,14,39,13,1,49,6,7,4,10,8,5,8,9,3,5,23};
-  //string_list in_data = {5,23,39,6,14,13,1,6,7,4,8,5,8,9,3,5,23};
-  //string_list in_data = {30,23,39};
+  nlohmann::json in_jdata;
+  std::cin >> in_jdata;
+  assert(in_jdata.is_array());
+  if(in_jdata.empty())
+  {
+    std::cout << "[]" << std::endl;
+    return 0;
+  }
+  using string_data_set = std::vector<std::string>;
+  auto in_data = in_jdata.get<string_data_set>();
   
-  sort_data_functor sort(in_data.begin(), in_data.end());
-  sort();
+  parallel_merge_sort(in_data.begin(), in_data.end());
+  
+  nlohmann::json j_out(in_data);
+  std::cout << j_out << std::endl;
   
   return 0;
 }
